@@ -14,7 +14,7 @@
           </el-col>
           <el-col :span="6">
             <div>
-              <h1></h1>
+              <h2 v-if="isShowTip">没有搜索到结果</h2>
             </div>
           </el-col>
           <el-col :span="6">
@@ -25,6 +25,7 @@
                 :label="item.label"
                 :value="item.value"
                 :disabled="item.disabled"
+                style="height:100%"
               ></el-option>
             </el-select>
           </el-col>
@@ -32,9 +33,18 @@
             <el-input
               placeholder="请输入内容"
               prefix-icon="el-icon-search"
-              v-model="input2"
-              style="width:350px;float:left"
+              v-model="input_search"
+              style="width:250px;float:left"
             ></el-input>
+            <!-- <el-autocomplete
+              class="inline-input"
+              v-model="state1"
+              :fetch-suggestions="querySearch"
+              placeholder="请输入内容"
+              @select="handleSelect"
+              style="width:250px;float:left;height:100%"
+            ></el-autocomplete>-->
+            <el-button type="primary" icon="el-icon-search" @click="search">搜索</el-button>
           </el-col>
         </el-row>
       </el-header>
@@ -69,39 +79,54 @@
               </template>
               <el-menu-item-group>
                 <el-menu-item key="chart_heatmap" @click="selectTag('chart_heatmap')">热力图</el-menu-item>
-                <el-menu-item key="chart_allscore" @click="selectTag('chart_allscore')">选项2</el-menu-item>
+                <!-- <el-menu-item key="test" @click="selectTag('test')">选项2</el-menu-item> -->
               </el-menu-item-group>
             </el-submenu>
             <el-submenu index="3">
               <template slot="title">
-                <i class="el-icon-location"></i>主题分析
+                <i class="el-icon-location"></i>评论主题分析
               </template>
               <el-menu-item-group>
-                <el-menu-item key="chart_wordcloud" @click="selectTag('chart_wordcloud')">词云图</el-menu-item>
-                <el-menu-item key="chart_wordpesg" @click="selectTag('chart_wordpesg')">词性图</el-menu-item>
+                <el-menu-item key="chart_tag" @click="selectTag('chart_tag')">主题标签</el-menu-item>
+                <el-menu-item key="chart_tfidf" @click="selectTag('chart_tfidf')">评论特征提取</el-menu-item>
+                <el-menu-item key="chart_wordcloud" @click="selectTag('chart_wordcloud')">评论词云</el-menu-item>
+                <el-menu-item key="chart_wordpesg" @click="selectTag('chart_wordpesg')">评论词性</el-menu-item>
               </el-menu-item-group>
             </el-submenu>
           </el-menu>
         </el-aside>
         <el-main>
           <div v-if="selected_tag=='chart_allscore'">
-            <Allscore />
+            <Allscore :jsonData_score="datalist"></Allscore>
           </div>
 
           <div v-else-if="selected_tag=='chart_hist'">
-            <Hist />
+            <Hist :jsonData_star="datalist"></Hist>
           </div>
 
           <div v-else-if="selected_tag=='chart_heatmap'">
-            <Heatmap />
+            <!-- <Heatmap /> -->
+            <Heatmap :jsonData_heat="datalist"></Heatmap>
+          </div>
+
+          <div v-else-if="selected_tag=='test'">
+            <Test :jsonData="datalist"></Test>
+          </div>
+
+          <div v-else-if="selected_tag=='chart_tag'">
+            <Tag :jsonData_tag="datalist"></Tag>
           </div>
 
           <div v-else-if="selected_tag=='chart_wordcloud'">
-            <Wordcloud />
+            <Wordcloud :jsonData_wordcloud="datalist"></Wordcloud>
+          </div>
+
+          <div v-else-if="selected_tag=='chart_tfidf'">
+            <Tfidf :jsonData_tfidf="datalist"></Tfidf>
           </div>
 
           <div v-else-if="selected_tag=='chart_wordpesg'">
-            <Wordpesg />
+            <Wordpesg :jsonData_pesg="datalist"></Wordpesg>
           </div>
         </el-main>
       </el-container>
@@ -161,6 +186,10 @@ import Hist from "./chart/star_hist.vue";
 import Wordpesg from "./chart/wordpesg_rose.vue";
 import Wordcloud from "./chart/wordcloud.vue";
 import Heatmap from "./chart/heatmap.vue";
+import Test from "./chart/test.vue";
+import Tag from "./chart/chart_tag.vue";
+import Tfidf from "./chart/chart_tfidf.vue";
+import axios from "axios";
 
 export default {
   name: "HelloWorld",
@@ -169,11 +198,35 @@ export default {
     Hist,
     Heatmap,
     Wordcloud,
-    Wordpesg
+    Wordpesg,
+    Test,
+    Tag,
+    Tfidf
   },
   data() {
     return {
-      selected_tag: ""
+      selected_tag: "",
+      options: [
+        {
+          value: "选项1",
+          label: "读书"
+        },
+        {
+          value: "选项2",
+          label: "电影",
+          disabled: true
+        },
+        {
+          value: "选项3",
+          label: "音乐",
+          disabled: true
+        }
+      ], //下拉选择框列表
+      input_search: "", //搜索框内容
+      isShowTip: false, //搜索显示数据，当搜索不到数据时为true
+      value: ""
+      // restaurants: [],
+      // state1: ""
     };
   },
 
@@ -184,9 +237,56 @@ export default {
     handleClose(key, keyPath) {
       console.log(key, keyPath);
     },
+    search() {
+      var word = this.input_search;
+      console.log(word);
+      axios({
+        url: "http://127.0.0.1:8000/search",
+        params: { bookname: word },
+        method: "get"
+      }).then(res => {
+        console.log(res.data);
+        this.datalist = res.data;
+      });
+    },
+
+    // querySearch(queryString, cb) {
+    //   var restaurants = this.restaurants;
+    //   var results = queryString
+    //     ? restaurants.filter(this.createFilter(queryString))
+    //     : restaurants;
+    //   // 调用 callback 返回建议列表的数据
+    //   cb(results);
+    // },
+    // createFilter(queryString) {
+    //   return restaurant => {
+    //     return (
+    //       restaurant.value.toLowerCase().indexOf(queryString.toLowerCase()) ===
+    //       0
+    //     );
+    //   };
+    // },
+    // loadAll() {
+    //   return [
+    //     { value: "图书1" },
+    //     { value: "图书2" },
+    //     { value: "图书3" },
+    //     { value: "图书4" },
+    //     { value: "图书5" },
+    //     { value: "图书6" },
+    //     { value: "图书7" }
+    //   ];
+    // },
+    handleSelect(item) {
+      console.log(item);
+    },
     selectTag(tag) {
       this.selected_tag = tag;
     }
+  },
+  mounted() {
+    this.search();
+    // this.restaurants = this.loadAll();
   }
 };
 </script>

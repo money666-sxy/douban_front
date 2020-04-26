@@ -1,13 +1,8 @@
 <template>
   <div style="width: 100%; height: 100%; background-color: #fff;">
     <div style="height: 100%; width: 100%;">
-      <div id="word_cloud" style="width:100%; height:620px;">
-        <el-image :src="this.wordcloud" alt="评论词云"></el-image>
-        <!-- <img
-          src="/Users/money666/Desktop/django_douban/douban_front/src/static/chart_wordcloud.png"
-          alt="评论词云"
-        />-->
-        <!-- <h1>{{this.wordcloud}}</h1> -->
+      <div id="word_cloud" style="width:100%; height:100%;">
+        <h2>{{this.name +'的评论特征提取词：'+ this.tfidf}}</h2>
       </div>
     </div>
   </div>
@@ -19,11 +14,11 @@ import axios from "axios";
 
 export default {
   name: "word_cloud",
-  props: ["jsonData_wordcloud"],
+  props: ["jsonData_tfidf"],
   data() {
     return {
-      wordcloud: this.jsonData_wordcloud.word_cloud,
-      name: this.jsonData_wordcloud.name
+      tfidf: this.jsonData_tfidf.tfidf,
+      name: this.jsonData_tfidf.tfidf
     };
   },
   mounted() {
